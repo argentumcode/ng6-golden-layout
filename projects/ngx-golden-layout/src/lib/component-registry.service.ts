@@ -1,13 +1,15 @@
-import { Inject, Injectable, Optional, Type } from '@angular/core';
+import { Inject, Injectable, OnDestroy, Optional, Type } from '@angular/core';
 import { ComponentType, GoldenLayoutComponents } from './config';
 import { PluginRegistryService } from './plugin-registry.service';
 import { Deferred } from './deferred';
 import { WrapperComponent } from './wrapper.component';
+import { Subscription } from "rxjs";
 
 @Injectable()
-export class ComponentRegistryService {
+export class ComponentRegistryService implements OnDestroy {
   private components = new Map<string, Type<any>>();
   private awaitedComponents = new Map<string, Deferred<Type<any>>>();
+  private pluginLoadedSubscription?: Subscription;
 
   constructor(
     @Inject(GoldenLayoutComponents) @Optional() initialComponents?: ComponentType[],
@@ -19,7 +21,7 @@ export class ComponentRegistryService {
       type: WrapperComponent,
     });
 
-    this.pluginRegistry?.pluginLoaded$.subscribe(({ id, module }) => {
+    this.pluginLoadedSubscription = this.pluginRegistry?.pluginLoaded$.subscribe(({ id, module }) => {
       const registeredTokens = module.injector.get(GoldenLayoutComponents, []);
       console.log('Plugin', id, 'wants to register', registeredTokens.length, 'components');
       registeredTokens.forEach(c => this.registerComponent({ ...c, plugin: id }));
@@ -61,5 +63,9 @@ export class ComponentRegistryService {
       this.awaitedComponents.set(component, d);
     }
     return d.promise;
+  }
+
+  ngOnDestroy(): void {
+    this.pluginLoadedSubscription?.unsubscribe();
   }
 }
