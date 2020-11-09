@@ -20,10 +20,10 @@
     ],
     "paths": {
       "ngx-golden-layout": [
-        "dist/ngx-golden-layout"
+        "projects/ngx-golden-layout/src/public-api.ts"
       ],
       "ngx-golden-layout/*": [
-        "dist/ngx-golden-layout/*"
+        "projects/ngx-golden-layout/src/*"
       ]
     }
   }
