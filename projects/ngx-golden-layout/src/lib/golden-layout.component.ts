@@ -844,7 +844,7 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
         glComponent.config.id = glComponent.id;
       }
 
-      const d = new Deferred<any>();
+      let d = new Deferred<any>();
       self.ngZone.run(() => {
         // Wait until the component registry can provide a type for the component
         // TBD: Maybe add a timeout here?
@@ -863,20 +863,27 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
             failedComponent = (container as any)._config.componentName;
           }
           const injector = self._createComponentInjector(container, componentState, failedComponent);
-          const componentRef = self.viewContainer.createComponent(factory, undefined, injector);
-
+          let componentRef = self.viewContainer.createComponent(factory, undefined, injector);
           // Bind the new component to container's client DOM element.
           container.getElement().append($(componentRef.location.nativeElement));
-          self._bindEventHooks(container, componentRef.instance);
+          let cleanupCallbacks = self._bindEventHooks(container, componentRef.instance);
           (container as any).__ngComponent = componentRef.instance;
           self.openedComponents.push(componentRef.instance);
           let destroyed = false;
-          const destroyFn = () => {
+          const destroyFn = (item?) => {
+            if (item) {
+              delete item.instance;
+            }
             if (!destroyed) {
               destroyed = true;
               self.openedComponents = self.openedComponents.filter(i => i !== componentRef.instance);
+              delete (container as any).__ngComponent;
               $(componentRef.location.nativeElement).remove();
               componentRef.destroy();
+              componentRef = undefined;
+              cleanupCallbacks();
+              cleanupCallbacks = undefined;
+              d = undefined;
             }
           };
 
@@ -930,34 +937,44 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
    * Registers an event handler for each implemented hook.
    * @param container Golden Layout component container.
    * @param component Angular component instance.
+   * @return clean up function to unregister events
+   *
    */
-  private _bindEventHooks(container: GoldenLayout.Container, component: any): void {
+  private _bindEventHooks(container: GoldenLayout.Container, component: any): () => void {
+    let resizeCallback: () => void;
     if (implementsGlOnResize(component)) {
-      container.on('resize', () => {
+      resizeCallback = () => {
         component.glOnResize();
-      });
+      };
+      container.on('resize', resizeCallback);
     }
 
+    let showCallback: () => void;
     if (implementsGlOnShow(component)) {
-      container.on('show', () => {
+      showCallback = () => {
         component.glOnShow();
-      });
+      };;
+      container.on('show', showCallback);
     }
 
+    let hideCallback: () => void;
     if (implementsGlOnHide(component)) {
-      container.on('hide', () => {
+      hideCallback = () => {
         component.glOnHide();
-      });
+      };
+      container.on('hide', hideCallback);
     }
 
+    let tabCallback: (tab: GoldenLayout.Tab) => void;
     if (implementsGlOnTab(component)) {
-      container.on('tab', (tab) => {
+      tabCallback = (tab) => {
         component.glOnTab(tab);
-      });
+      };
+      container.on('tab', tabCallback);
     }
 
+    const containerClose = container.close.bind(container);
     if (implementsGlOnClose(component)) {
-      const containerClose = container.close.bind(container);
       container.close = () => {
         if (!(container as any)._config.isClosable) {
           return false;
@@ -966,6 +983,21 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
           containerClose();
         }, () => { /* Prevent close, don't care about rejections */ });
       };
+    }
+    return () => {
+      if (resizeCallback) {
+        container.off('resize', resizeCallback);
+      }
+      if (showCallback) {
+        container.off('show', showCallback);
+      }
+      if (hideCallback) {
+        container.off('hide', hideCallback);
+      }
+      if (tabCallback) {
+        container.off('tab', tabCallback);
+      }
+      container.close = containerClose;
     }
   }
 }

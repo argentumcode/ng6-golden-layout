@@ -159,12 +159,25 @@ export class RootComponent {
   selector: `app-test`,
 })
 export class TestComponent implements GlOnPopout, GlOnClose, GlOnHide, GlOnShow, GlOnPopin, GlOnResize, GlOnTab, GlOnUnload {
+  private _cleanup: () => void;
+
   glOnHide(): void {
     console.log('glOnHide');
   }
   constructor(public test: TestService, @Inject(GoldenLayoutContainer) private container: GoldenLayout.Container) {
-    container.parent.parent.on('maximised', () => console.log(container, 'got maximised'));
-    container.parent.parent.on('minimised', () => console.log(container, 'got minimised'));
+    const maximisedCallback = () => {
+      console.log(container, 'got maximised')
+    };
+    const minimisedCallback = () => {
+      console.log(container, 'got minimised')
+    };
+    container.parent.parent.on('maximised', maximisedCallback);
+    container.parent.parent.on('minimised', minimisedCallback);
+
+    this._cleanup = () => {
+      container.parent.parent.off('maximised', maximisedCallback);
+      container.parent.parent.off('minimised', minimisedCallback);
+    };
   }
 
   glOnPopout() {
@@ -193,6 +206,7 @@ export class TestComponent implements GlOnPopout, GlOnClose, GlOnHide, GlOnShow,
   }
   ngOnDestroy() {
     console.log('Destroyed');
+    this._cleanup();
   }
 }
 
