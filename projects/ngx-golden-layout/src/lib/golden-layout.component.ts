@@ -421,7 +421,9 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
     if (isDevMode()) {
       console.log(`Destroy@${this.rootService.isChildWindow ? 'child' : 'root'}!`);
     }
-    this.layoutSubscription.unsubscribe();
+    if (this.layoutSubscription) {
+      this.layoutSubscription.unsubscribe();
+    }
 
     // restore the original tick method.
     // this appens in two cases:
