@@ -85,4 +85,5 @@ export interface GlOnUnload {
 export interface GlHeaderItem {
   headerComponent: Type<any> | Promise<Type<any>>;
   additionalTokens?: StaticProvider[] | Promise<StaticProvider[]>;
+  headerAlignment?: 'left' | 'right';
 }

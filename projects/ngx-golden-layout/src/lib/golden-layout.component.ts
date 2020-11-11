@@ -764,7 +764,7 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
           stack.header._updateTabSizes();
         }
       };
-      const bootstrapComponent = (ct: Type<any>, tokens: StaticProvider[], injector: Injector) => {
+      const bootstrapComponent = (ct: Type<any>, tokens: StaticProvider[], injector: Injector, alignment: 'left' | 'right') => {
         if (element) {
           disposeControl();
         }
@@ -772,6 +772,13 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
         const factory = this.componentFactoryResolver.resolveComponentFactory(ct);
         const headerInjector = Injector.create(tokens, injector);
         element = this.viewContainer.createComponent(factory, undefined, headerInjector);
+        if (alignment === 'left') {
+          ctr.classList.add('lm_custom_controls--left-align');
+          ctr.classList.remove('lm_custom_controls--right-align');
+        } else {
+          ctr.classList.add('lm_custom_controls--right-align');
+          ctr.classList.remove('lm_custom_controls--left-align');
+        }
         customHeaderElement.prepend(element.location.nativeElement);
         stack.header._updateTabSizes();
       };
@@ -785,17 +792,18 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
           return (contentItem as any).instance || of(null);
         }), switchMap((cr: ComponentRef<any> | null) => {
           if (!cr) {
-            return Promise.all([null, null, null]);
+            return Promise.all([null, null, null, null]);
           }
           const inst = cr.instance.headerComponent;
           const tokens = cr.instance.additionalTokens;
           return Promise.all([
             Promise.resolve(inst),
             Promise.resolve(tokens),
-            Promise.resolve(cr)
+            Promise.resolve(cr),
+            Promise.resolve(cr.instance.headerAlignment || 'right')
           ]);
         })
-      ).subscribe(([header, tokens, componentRef]) => {
+      ).subscribe(([header, tokens, componentRef, headerAlignment]) => {
         // This is the currently visible content item, after it's loaded.
         // Therefore, we can check whether (and what) to render as header component here.
         if (!header || !componentRef) {
@@ -804,7 +812,8 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
           bootstrapComponent(
             header,
             tokens || [],
-            componentRef.injector
+            componentRef.injector,
+            headerAlignment
           );
         }
       }, disposeControl, disposeControl);
