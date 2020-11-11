@@ -213,7 +213,8 @@ const newHeader = function(layoutManager, parent) {
 newHeader._template = [
 	'<div class="lm_header">',
 	'<ul class="lm_tabs"></ul>',
-	'<ul class="lm_controls"></ul>',
+  '<ul class="lm_custom_controls"></ul>',
+  '<ul class="lm_controls"></ul>',
 	'<ul class="lm_tabdropdown_list"></ul>',
 	'</div>'
 ].join( '' );
@@ -749,7 +750,7 @@ export class GoldenLayoutComponent implements OnInit, OnDestroy {
       const customHeaderElement = document.createElement('li');
       customHeaderElement.classList.add('custom-header');
       customHeaderElement.style.display = 'none';
-      const ctr = stack.header.controlsContainer[0] as HTMLUListElement;
+      const ctr = stack.header.element.find('.lm_custom_controls')[0] as HTMLUListElement;
       let element: ComponentRef<any> = null;
 
       ctr.prepend(customHeaderElement);
